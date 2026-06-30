@@ -38,6 +38,34 @@ app.use("/api/users", userRoutes);
 // Health check
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
+// Temporary seed endpoint (احذفه بعد الاستخدام لأسباب أمنية)
+app.get("/api/setup-seed", async (req, res) => {
+  try {
+    if (req.query.key !== process.env.JWT_SECRET) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const { PrismaClient } = require("@prisma/client");
+    const bcrypt = require("bcryptjs");
+    const prisma = new PrismaClient();
+
+    const hashed = await bcrypt.hash("Admin@1234", 12);
+    const admin = await prisma.user.upsert({
+      where: { email: "admin@yourdomain.com" },
+      update: {},
+      create: {
+        email: "admin@yourdomain.com",
+        password: hashed,
+        name: "Super Admin",
+        role: "SUPERADMIN"
+      }
+    });
+
+    res.json({ message: "Admin created", email: admin.email });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 404
 app.use((req, res) => res.status(404).json({ error: "Route not found" }));
 
