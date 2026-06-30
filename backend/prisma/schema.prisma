@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String
+  role         Role     @default(VIEWER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastLoginAt  DateTime?
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Inbox {
+  id          String    @id @default(cuid())
+  address     String    @unique
+  label       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  messages    Message[]
+
+  @@index([address])
+}
+
+model Message {
+  id          String      @id @default(cuid())
+  inboxId     String
+  inbox       Inbox       @relation(fields: [inboxId], references: [id], onDelete: Cascade)
+  direction   Direction
+  fromAddress String
+  toAddress   String
+  subject     String      @default("(no subject)")
+  body        String      @db.Text
+  htmlBody    String?     @db.Text
+  isRead      Boolean     @default(false)
+  receivedAt  DateTime    @default(now())
+  messageId   String?     @unique
+
+  @@index([inboxId])
+  @@index([receivedAt])
+}
+
+model Stats {
+  id              String   @id @default(cuid())
+  date            DateTime @unique @default(now())
+  totalReceived   Int      @default(0)
+  totalSent       Int      @default(0)
+  activeInboxes   Int      @default(0)
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  VIEWER
+}
+
+enum Direction {
+  INBOUND
+  OUTBOUND
+}
