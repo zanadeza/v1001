@@ -38,7 +38,36 @@ app.use("/api/users", userRoutes);
 // Health check
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
-// Temporary seed endpoint (احذفه بعد الاستخدام لأسباب أمنية)
+// Temporary bulk-generate endpoint (احذفه بعد الاستخدام لأسباب أمنية)
+app.get("/api/setup-bulk-inboxes", async (req, res) => {
+  try {
+    if (req.query.key !== process.env.JWT_SECRET) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const { PrismaClient } = require("@prisma/client");
+    const prisma = new PrismaClient();
+
+    const count = Math.min(Number(req.query.count) || 7000, 10000);
+    const domain = req.query.domain || "nader111hhdhyygdh.win";
+    const prefix = req.query.prefix || "inbox";
+
+    const data = Array.from({ length: count }, (_, i) => ({
+      address: `${prefix}${String(i + 1).padStart(5, "0")}@${domain}`
+    }));
+
+    // batch insert بدفعات من 1000 لتجنب overload
+    let created = 0;
+    for (let i = 0; i < data.length; i += 1000) {
+      const batch = data.slice(i, i + 1000);
+      const result = await prisma.inbox.createMany({ data: batch, skipDuplicates: true });
+      created += result.count;
+    }
+
+    res.json({ message: "Bulk inboxes created", created, total: count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get("/api/setup-seed", async (req, res) => {
   try {
     if (req.query.key !== process.env.JWT_SECRET) {
