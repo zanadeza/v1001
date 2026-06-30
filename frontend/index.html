@@ -600,6 +600,9 @@ async function viewMessage(id) {
   const m = await res.json();
   const detail = document.getElementById('msg-detail');
   detail.style.display='block';
+  const bodyContent = m.htmlBody
+    ? `<iframe sandbox="" style="width:100%;min-height:300px;border:none;background:#fff;border-radius:8px" srcdoc="${escHtml(m.htmlBody)}"></iframe>`
+    : `<div class="msg-detail-body">${escHtml(m.body)}</div>`;
   detail.innerHTML=`
     <div class="msg-detail-header">
       <div class="msg-detail-subject">${escHtml(m.subject)}</div>
@@ -609,7 +612,7 @@ async function viewMessage(id) {
         <span>${fmtDate(m.receivedAt)}</span>
       </div>
     </div>
-    <div class="msg-detail-body">${escHtml(m.body)}</div>`;
+    ${bodyContent}`;
   if (selectedInbox) loadMessages(selectedInbox.id);
 }
 
@@ -678,6 +681,14 @@ function showToast(msg, type='success') {
 
 // Auto-refresh stats every 30 seconds
 setInterval(()=>{ if(document.getElementById('page-dashboard').classList.contains('active')) loadStats(); },30000);
+
+// Auto-refresh inbox list + open conversation every 10 seconds (live updates)
+setInterval(()=>{
+  if(document.getElementById('page-inboxes').classList.contains('active')) {
+    loadInboxes();
+    if (selectedInbox) loadMessages(selectedInbox.id);
+  }
+},10000);
 
 // Init
 if (token) initApp();
