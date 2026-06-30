@@ -7,8 +7,14 @@ const receiveFromCloudflare = async (req, res) => {
     // تحقق من الـ secret
     const secret = (req.headers["x-webhook-secret"] || "").trim();
     const expected = (process.env.CLOUDFLARE_WEBHOOK_SECRET || "").trim();
+    console.log("DEBUG webhook secret:", JSON.stringify({
+      received: secret,
+      receivedLength: secret.length,
+      expected: expected,
+      expectedLength: expected.length,
+      match: secret === expected
+    }));
     if (!expected || secret !== expected) {
-      console.error("Webhook secret mismatch:", { received: secret, expectedLength: expected.length });
       return res.status(401).json({ error: "Invalid webhook secret" });
     }
 
