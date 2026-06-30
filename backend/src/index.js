@@ -14,6 +14,9 @@ const userRoutes = require("./routes/user.routes");
 
 const app = express();
 
+// Render is behind a proxy, needed for rate-limiter and correct IPs
+app.set("trust proxy", 1);
+
 // Security
 app.use(helmet());
 app.use(cors({
