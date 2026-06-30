@@ -5,8 +5,10 @@ const prisma = new PrismaClient();
 const receiveFromCloudflare = async (req, res) => {
   try {
     // تحقق من الـ secret
-    const secret = req.headers["x-webhook-secret"];
-    if (secret !== process.env.CLOUDFLARE_WEBHOOK_SECRET) {
+    const secret = (req.headers["x-webhook-secret"] || "").trim();
+    const expected = (process.env.CLOUDFLARE_WEBHOOK_SECRET || "").trim();
+    if (!expected || secret !== expected) {
+      console.error("Webhook secret mismatch:", { received: secret, expectedLength: expected.length });
       return res.status(401).json({ error: "Invalid webhook secret" });
     }
 
