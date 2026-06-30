@@ -425,6 +425,8 @@ let inboxPage = 1;
 let inboxSearch = '';
 
 // ===== AUTH =====
+let refreshPromise = null;
+
 async function apiFetch(path, opts = {}) {
   const res = await fetch(API + path, {
     ...opts,
@@ -440,14 +442,21 @@ async function apiFetch(path, opts = {}) {
 
 async function tryRefresh() {
   if (!refreshToken) return false;
-  const res = await fetch(API + '/auth/refresh', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({refreshToken}) });
-  if (!res.ok) return false;
-  const data = await res.json();
-  token = data.accessToken;
-  refreshToken = data.refreshToken;
-  localStorage.setItem('token', token);
-  localStorage.setItem('refreshToken', refreshToken);
-  return true;
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(API + '/auth/refresh', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({refreshToken}) });
+      if (!res.ok) return false;
+      const data = await res.json();
+      token = data.accessToken;
+      refreshToken = data.refreshToken;
+      localStorage.setItem('token', token);
+      localStorage.setItem('refreshToken', refreshToken);
+      return true;
+    } catch { return false; }
+    finally { setTimeout(()=>{ refreshPromise = null; }, 100); }
+  })();
+  return refreshPromise;
 }
 
 async function doLogin() {
